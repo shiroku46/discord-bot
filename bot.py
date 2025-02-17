@@ -102,7 +102,7 @@ async def on_message(message):
     if user_id not in conversation_history:
         conversation_history[user_id] = []
     conversation_history[user_id].append({"role": "user", "content": message.content})
-    system_messages = character_settings.get(guild_id, ["あなたは『サイカワ』です。『桝見荘』の管理人代行をしています。あなたは今後、サイカワという人物として、キャラクター設定に従ったロールプレイをしつつ、丁寧かつ簡潔な口調で質問に回答してください。"])
+    system_messages = character_settings.get(guild_id, ["あなたは『サイカワ』です。『桝見荘』の管理人代行をしています。あなたは今後、サイカワという人物として、丁寧かつ簡潔な口調で質問に回答してください。"])
     messages = [{"role": "system", "content": setting} for setting in system_messages]
     messages.extend(conversation_history[user_id])
     try:
@@ -111,6 +111,7 @@ async def on_message(message):
             messages=messages,
         )
         reply = response.choices[0].message.content.replace("**", "")  # 太字の解除
+        reply = reply.replace(user_name, "").strip()  # 名前の重複防止
         conversation_history[user_id].append({"role": "assistant", "content": reply})
         patterns = [
             f"{user_name}、{reply}",  # 最初にユーザー名
