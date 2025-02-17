@@ -40,8 +40,13 @@ async def manage_history(user_id):
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
-    print(f"✅ ログインしました: {bot.user}")
+    try:
+        if not hasattr(bot, "synced"):
+            await bot.tree.sync()
+            bot.synced = True
+        print(f"✅ ログインしました: {bot.user}")
+    except discord.HTTPException as e:
+        print(f"⚠ コマンド同期失敗: {e}")
 
 @bot.tree.command(name="set_character", description="キャラクター設定を追加")
 async def set_character(interaction: discord.Interaction, setting: str):
@@ -92,19 +97,18 @@ async def on_message(message):
     if bot.user not in message.mentions:
         return  
     user_id = message.author.id
-    user_name = f"{message.author.display_name}様"
+    user_name = f"{message.author.display_name}"
     guild_id = message.guild.id if message.guild else None
     if user_id not in conversation_history:
         conversation_history[user_id] = []
     conversation_history[user_id].append({"role": "user", "content": message.content})
-    system_messages = character_settings.get(guild_id, ["あなたは『サイカワ』です。『桝見荘』の管理人代行をしています。あなた自身がサイカワであることを自認し、他人のことだとは思わないようにしてください。"])
+    system_messages = character_settings.get(guild_id, ["あなたは『サイカワ』です。『桝見荘』の管理人代行をしています。あなたは今後、サイカワという人物としてロールプレイをしてください。"])
     messages = [{"role": "system", "content": setting} for setting in system_messages]
     messages.extend(conversation_history[user_id])
     try:
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            
         )
         reply = response.choices[0].message.content.replace("**", "")  # 太字の解除
         conversation_history[user_id].append({"role": "assistant", "content": reply})
@@ -116,8 +120,9 @@ async def on_message(message):
         reply_with_name = random.choice(patterns)
         await message.channel.send(reply_with_name)
         asyncio.create_task(manage_history(user_id))
-    except Exception as e:
+    except openai.OpenAIError as e:
         print(f"🚨 OpenAI APIエラー: {e}")
-        await message.channel.send("申し訳ありませんが、現在応答できません。")
+        await message.channel.send("💤")
+        await asyncio.sleep(5)  # 5秒後に再試行
 
 bot.run(discord_token)
