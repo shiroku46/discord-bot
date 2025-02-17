@@ -97,12 +97,12 @@ async def on_message(message):
     if bot.user not in message.mentions:
         return  
     user_id = message.author.id
-    user_name = f"{message.author.display_name}"
+    user_name = f"{message.author.display_name}様"
     guild_id = message.guild.id if message.guild else None
     if user_id not in conversation_history:
         conversation_history[user_id] = []
     conversation_history[user_id].append({"role": "user", "content": message.content})
-    system_messages = character_settings.get(guild_id, ["あなたは『サイカワ』です。『桝見荘』の管理人代行をしています。あなたは今後、サイカワという人物としてロールプレイをしてください。"])
+    system_messages = character_settings.get(guild_id, ["あなたは『サイカワ』です。『桝見荘』の管理人代行をしています。あなたは今後、サイカワという人物として、キャラクター設定に従ったロールプレイをしつつ、丁寧かつ簡潔な口調で質問に回答してください。"])
     messages = [{"role": "system", "content": setting} for setting in system_messages]
     messages.extend(conversation_history[user_id])
     try:
@@ -122,7 +122,7 @@ async def on_message(message):
         asyncio.create_task(manage_history(user_id))
     except openai.OpenAIError as e:
         print(f"🚨 OpenAI APIエラー: {e}")
-        await message.channel.send("💤")
+        await message.channel.send("申し訳ございません。ただいま取り込み中です。")
         await asyncio.sleep(5)  # 5秒後に再試行
 
 bot.run(discord_token)
